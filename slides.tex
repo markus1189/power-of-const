@@ -1,0 +1,77 @@
+ \documentclass[aspectratio=169]{beamer}
+
+% Must be loaded first
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,fit,calc}
+
+\usepackage[utf8]{inputenc}
+\usepackage{textpos}
+
+% Font configuration
+\usepackage{fontspec}
+
+\usepackage[listings, minted]{tcolorbox}
+\usepackage{smartdiagram}
+\usepackage[export]{adjustbox}
+
+\input{font.tex}
+
+% Tikz for beautiful drawings
+\usetikzlibrary{mindmap,backgrounds}
+\usetikzlibrary{arrows.meta,arrows}
+\usetikzlibrary{shapes.geometric}
+
+% Minted configuration for source code highlighting
+\usepackage{minted}
+\setminted{highlightcolor=orange!50, linenos}
+\setminted{style=lovelace}
+
+\usepackage[listings, minted]{tcolorbox}
+\tcbset{left=6mm}
+
+% Use the include theme
+\usetheme{codecentric}
+
+% Metadata
+\title{The Power Of Const}
+\author{Markus Hauck (@markus1189)}
+
+% The presentation content
+\begin{document}
+
+\begin{frame}[noframenumbering,plain]
+  \titlepage{}
+\end{frame}
+
+\section{Introduction}\label{sec:introduction}
+
+\begin{frame}
+  \frametitle{The Const Datatype}
+\end{frame}
+
+\section{Functor}
+
+\begin{frame}
+  \frametitle{The Const Functor Instance}
+\end{frame}
+
+\section{Applicative}
+
+\begin{frame}
+  \frametitle{The Const Applicative Instance}
+\end{frame}
+
+\section{Selective}
+
+\begin{frame}
+  \frametitle{The Const Selective Instance}
+\end{frame}
+
+\section{Conclusion}
+
+\begin{frame}
+  \Huge{}
+  Questions?
+\end{frame}
+
+\end{document}
