@@ -1,4 +1,4 @@
- \documentclass[aspectratio=169]{beamer}
+\documentclass[aspectratio=169]{beamer}
 
 % Must be loaded first
 \usepackage{tikz}
@@ -36,7 +36,6 @@
 \title{The Power Of Const}
 \author{Markus Hauck (@markus1189)}
 
-% The presentation content
 \begin{document}
 
 \begin{frame}[noframenumbering,plain]
@@ -46,25 +45,154 @@
 \section{Introduction}\label{sec:introduction}
 
 \begin{frame}
-  \frametitle{The Const Datatype}
+  \frametitle{Why This Talk}
+  \begin{itemize}
+  \item when you learn about it \texttt{Const} is one of the ``funny'' datatypes
+  \item not immediately obvious what it is good for
+  \item surprisingly, it is many useful usages
+  \item this talk shows (some of) them
+  \end{itemize}
 \end{frame}
 
-\section{Functor}
+\begin{frame}[fragile]
+  \frametitle{The Const Datatype}
+  \begin{minted}{haskell}
+    newtype Const a b = Const { getConst :: a }
+  \end{minted}
+  \vfill
+  \begin{itemize}
+  \item two type parameters \texttt{a} and \texttt{b}
+  \item \texttt{b} is a phantom type
+  \item you can only ever get a value of type \texttt{a} out of it
+  \item type level version of the \texttt{const} \textbf{function} that ignores one of
+    the two arguments:
+  \end{itemize}
+  \begin{minted}{haskell}
+    const :: a -> b -> b
+    const x _ = x
+  \end{minted}
+\end{frame}
 
-\begin{frame}
-  \frametitle{The Const Functor Instance}
+\section{Lens (Functor)}
+
+\begin{frame}[fragile]
+  \frametitle{The Functor Instance}
+  \begin{minted}{haskell}
+    instance Functor (Const m) where
+    fmap _ (Const v) = Const v
+  \end{minted}
+  \vfill
+  \begin{itemize}
+  \item unpack and retag
+  \item discards the function application
+  \item but how is this useful?
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Use of Const in Twan van Laarhoven Lenses}
+  \begin{minted}{haskell}
+    type Lens a b = forall f. Functor f => (b -> f b) -> a -> f a
+    _1 :: Lens (a, b) a
+    _1 f (x1, y) = fmap (\x2 -> (x2, y)) (f x1)
+  \end{minted}
+
+  \begin{itemize}
+  \item given a functorial function modifier for \texttt{b}
+  \item and a ``bigger'' \texttt{a} that you can get a \texttt{b} from
+  \item produce a new \texttt{a} with the modified \texttt{b} inside
+  \item use \texttt{Const} to implement the \texttt{getter}
+  \end{itemize}
+
+  \begin{minted}{haskell}
+    forall f. Functor f => (b -> f b) -> (a -> f a)
+    (b -> f b) -> (a -> f a)
+  \end{minted}
+
 \end{frame}
 
 \section{Applicative}
 
 \begin{frame}
-  \frametitle{The Const Applicative Instance}
+  \frametitle{The Applicative Instance}
+  \begin{itemize}
+  \item probably one of my favorites (beautiful)
+  \item opens up a lot of possibilities
+  \item how? connects two very important concepts
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{The Applicative Instance}
+  \begin{minted}{haskell}
+    instance Applicative (Const m) where
+    pure :: a -> Const m a
+    pure x = _pure
+
+    (<*>) :: Const m (a -> b) -> Const m a -> Const m b
+    Const f <*> Const v = _ap
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{The Applicative Instance}
+  \begin{minted}{haskell}
+    instance Monoid m => Applicative (Const m) where
+    pure _ = Const mempty
+    Const f <*> Const v = Const (f <> v)
+  \end{minted}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Promoting Monoids}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Using Promoted Monoids}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Const and Applicative}
+  \begin{itemize}
+  \item beautiful: \texttt{Const} highlights the relation between
+    Applicative and Monoid
+  \item you can use \textbf{everything} you know from Monoids and plug it into applicative functions
+  \item Applicative laws state that instances have to be monoidal in
+    their effects
+  % \item \texttt{Const} is a monoid isomorphism
+  \end{itemize}
 \end{frame}
 
 \section{Selective}
 
-\begin{frame}
-  \frametitle{The Const Selective Instance}
+\begin{frame}[fragile]
+  \frametitle{Selective Functors}
+  \begin{minted}{haskell}
+    class Applicative f => Selective f where
+    select :: f (Either a b) -> f (a -> b) -> f b
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{The Selective Instance}
+  \begin{minted}{haskell}
+    newtype Over m a = Over { getOver :: m }
+
+    newtype Under m a = Under { getUnder :: m }
+  \end{minted}
+  \vfill
+  \begin{itemize}
+  \item with \texttt{Selective} we have two use cases
+  \item \texttt{Over} for static \textbf{over}-approximation
+  \item \texttt{Under} for static \textbf{under}-approximation
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Using Selective}
+  \begin{minted}{haskell}
+    ifS :: Selective f => f Bool -> f a -> f a -> f a
+  \end{minted}
 \end{frame}
 
 \section{Conclusion}
@@ -72,6 +200,31 @@
 \begin{frame}
   \Huge{}
   Questions?
+\end{frame}
+
+\appendix{}
+
+\begin{frame}[fragile]
+  \frametitle{Base 2.1 release}
+  \begin{minted}{diff}
+    commit aa6f4f5ee9f69a034fe694d1021c53f404905fc9
+    Author: Ian Lynagh <igloo@earth.li>
+    Date:   Mon Oct 9 11:40:09 2006 +0000
+
+    Bump version number
+
+    diff --git a/libraries/base/base.cabal b/libraries/base/base.cabal
+    index 597f2b3422..071e81edce 100644
+    --- a/libraries/base/base.cabal
+    +++ b/libraries/base/base.cabal
+    @@ -1,5 +1,5 @@
+    name:          base
+    -version:       2.0
+    +version:       2.1
+    license:       BSD3
+    license-file:  LICENSE
+    maintainer:    libraries@haskell.org
+  \end{minted}
 \end{frame}
 
 \end{document}
