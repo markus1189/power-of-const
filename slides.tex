@@ -350,6 +350,28 @@ newtype Under m a = Under { getUnder :: m }
   \end{itemize}
 \end{frame}
 
+\begin{frame}[fragile]
+  \begin{minted}{haskell}
+instance Monoid a => Selective (Over a) where
+  select (Over (Const c)) (Over (Const t)) = Over (Const (c <> t))
+
+instance Monoid a => Selective (Under a) where
+  select (Under (Const c)) _ = Under (Const c)
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \begin{itemize}
+  \item why is this so cool?
+  \item using the \texttt{FreeSelective}
+  \item the DSL can express conditional branching, but we can still do
+    static analysis and transformation
+  \item using \texttt{Over} and \texttt{Under} extremely useful to e.g.\ check properties of a program
+  \item example: does a certain effect \textbf{always} occur? Check \texttt{Under}
+  \item example: does a certain effect \textbf{never} occur: Check \texttt{Over}
+  \end{itemize}
+\end{frame}
+
 \section{Conclusion}
 \begin{frame}
   \begin{center}
