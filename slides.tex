@@ -43,11 +43,17 @@
 \end{frame}
 
 \section{Introduction}\label{sec:introduction}
+\begin{frame}
+  \begin{center}
+    \Huge Introduction
+  \end{center}
+\end{frame}
 
 \begin{frame}
   \frametitle{Why This Talk}
   \begin{itemize}
-  \item when you learn about it \texttt{Const} is one of the ``funny'' datatypes
+  \item why a whole talk about \texttt{Const}?
+  \item one of the ``funny'' datatypes at first sight
   \item not immediately obvious what it is good for
   \item surprisingly, it is many useful usages
   \item this talk shows (some of) them
@@ -75,13 +81,29 @@
   \item type level version of the \texttt{const} \textbf{function} that ignores one of
     the two arguments:
   \end{itemize}
+  \vspace{5mm}
   \begin{minted}{haskell}
     const :: a -> b -> b
     const x _ = x
   \end{minted}
 \end{frame}
 
-\section{Lens (Functor)}
+\begin{frame}
+  \frametitle{Table Of Contents}
+  \begin{itemize}
+  \item Functor instance
+  \item Applicative instance
+  \item Selective Applicative instance
+  \item Conclusion
+  \end{itemize}
+\end{frame}
+
+\section{Functor}
+\begin{frame}
+  \begin{center}
+    \Huge Functor
+  \end{center}
+\end{frame}
 
 \begin{frame}[fragile]
   \frametitle{The Functor Instance}
@@ -89,10 +111,16 @@
     instance Functor (Const m) where
       fmap _ (Const v) = Const v
   \end{minted}
+  \vspace{5mm}
+  \begin{minted}{text}
+    ghci> c = Const @String @Int "can't touch me"
+    ghci> fmap (+1) c
+    Const "can't touch me"
+  \end{minted}
   \vfill
   \begin{itemize}
-  \item unpack and retag
-  \item discards the function application
+  \item unpack and retag (change the phantom type)
+  \item \textbf{discards} the function application
   \item but how is this useful?
   \end{itemize}
 \end{frame}
@@ -113,17 +141,40 @@
 \end{frame}
 
 \begin{frame}[fragile]
-  \begin{itemize}
-  \item use \texttt{Const} to implement the \texttt{getter}
-  \end{itemize}
-
+  \frametitle{Implementing Getter With Const}
   \begin{minted}{haskell}
-    forall f. Functor f => (b -> f b) -> (a -> f a)
-    (b -> f b) -> (a -> f a)
+    _1 :: Lens (a, b) a
+    _1 f (x1, y) = fmap (\x2 -> (x2, y)) (f x1)
+
+    get :: Lens a b -> a -> b
+    get l x = getConst (l Const x)
+  \end{minted}
+  \vfill
+  \begin{minted}{haskell}
+  get _1 Const (42, 'a')
+= getConst (_1 Const (42, 'a'))                 -- Def. of 'get'
+= getConst (fmap (\x2 -> (x2, 'a')) (Const 42)) -- Def. of '_1'
+= getConst (Const 42)                           -- Def. of 'fmap' for 'Const
+= 42                                            -- The Answer!
   \end{minted}
 \end{frame}
 
+\begin{frame}
+  \frametitle{Functor}
+  \begin{itemize}
+  \item first example: Functor for \texttt{Const}
+  \item useless at first glance
+  \item nice for lenses
+  \end{itemize}
+\end{frame}
+
 \section{Applicative}
+\begin{frame}
+  \begin{center}
+    \Huge Applicative
+  \end{center}
+\end{frame}
+
 
 \begin{frame}
   \frametitle{The Applicative Instance}
@@ -139,24 +190,32 @@
   \begin{minted}{haskell}
     instance Applicative (Const m) where
       pure :: a -> Const m a
-      pure x = _pure
+      pure = _pure
 
-    (<*>) :: Const m (a -> b) -> Const m a -> Const m b
-    Const f <*> Const v = _ap
+      (<*>) :: Const m (a -> b) -> Const m a -> Const m b
+      Const f <*> Const v = _ap
   \end{minted}
 \end{frame}
 
 \begin{frame}[fragile]
   \frametitle{The Applicative Instance}
   \begin{minted}{haskell}
-    instance Monoid m => Applicative (Const m) where
+    instance Applicative (Const m) where
+      pure :: a -> Const m a
       pure _ = Const mempty
+
+      (<*>) :: Const m (a -> b) -> Const m a -> Const m b
       Const f <*> Const v = Const (f <> v)
   \end{minted}
 \end{frame}
 
 \begin{frame}
   \frametitle{Promoting Monoids}
+  \begin{itemize}
+  \item but what does it \textbf{mean}?
+  \item we can use any function working with \texttt{Applicative}s and
+    give them \texttt{Monoid}s!
+  \end{itemize}
 \end{frame}
 
 \begin{frame}
@@ -164,6 +223,8 @@
   \begin{itemize}
   \item by using \texttt{traverse} with \texttt{Const} we get \texttt{foldMap}
   \item that's why \texttt{Traversable} is enough to define a \texttt{Foldable} instance
+  \item Use \texttt{Const} to statically analyze \texttt{Free Applicative} programs
+  \item which accumulates a monoidal value instead of performing actual effects
   \end{itemize}
 \end{frame}
 
@@ -179,13 +240,15 @@
   \end{itemize}
 \end{frame}
 
-\section{Monad}
-
 \begin{frame}[fragile]
   \begin{itemize}
-  \item so what about the monad instance?
+  \item we saw the instance for \texttt{Applicative}
+  \item important bridge between \texttt{Monoid} and \texttt{Applicative}
+  \item so what about the \texttt{Monad} instance?
   \end{itemize}
+\end{frame}
 
+\begin{frame}[fragile]
   \begin{minted}{haskell}
 import Data.Functor.Const
 
@@ -216,12 +279,17 @@ const-monad.hs:4:23: error:
 \end{frame}
 
 \section{Selective}
+\begin{frame}
+  \begin{center}
+    \Huge Selective
+  \end{center}
+\end{frame}
 
 \begin{frame}[fragile]
   \begin{center}
     \includegraphics[width=0.77\textwidth]{static-images/selective-applicative-functors-paper.jpg}
     \vfill
-    % \href{https://www.staff.ncl.ac.uk/andrey.mokhov/selective-functors.pdf}
+    \href{https://www.staff.ncl.ac.uk/andrey.mokhov/selective-functors.pdf}{https://www.staff.ncl.ac.uk/andrey.mokhov/selective-functors.pdf}
   \end{center}
 \end{frame}
 
@@ -248,7 +316,7 @@ class Applicative f => Selective f where
   \end{minted}
   \vspace{5mm}
   \begin{itemize}
-  \item what does it buy me? good intuition: \texttt{ifS}
+  \item what does it buy me?
   \item you can branch on \textbf{Bool}s that are inside an ``effect''\footnote{``effect'' with the usual caveats}
     % TODO: code example, e.g. checkFoo
   \end{itemize}
@@ -283,6 +351,11 @@ newtype Under m a = Under { getUnder :: m }
 \end{frame}
 
 \section{Conclusion}
+\begin{frame}
+  \begin{center}
+    \Huge Conclusion
+  \end{center}
+\end{frame}
 
 \begin{frame}
   \begin{itemize}
