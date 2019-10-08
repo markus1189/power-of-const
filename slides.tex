@@ -108,8 +108,24 @@
 \begin{frame}[fragile]
   \frametitle{The Functor Instance}
   \begin{minted}{haskell}
-    instance Functor (Const m) where
-      fmap _ (Const v) = Const v
+  instance Functor (Const a) where
+    fmap f c = _
+  \end{minted}
+  \vspace{5mm}
+  \begin{minted}{text}
+* Found hole: _ :: MyConst a b
+...
+* Relevant bindings include
+    c :: MyConst a a1
+    f :: a1 -> b
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{The Functor Instance}
+  \begin{minted}{haskell}
+  instance Functor (Const a) where
+    fmap _ (Const a) = Const a
   \end{minted}
   \vspace{5mm}
   \begin{minted}{text}
@@ -134,9 +150,13 @@
   \end{minted}
 
   \begin{itemize}
-  \item given a functorial function modifier for \texttt{b}
-  \item and a ``bigger'' \texttt{a} that you can get a \texttt{b} from
-  \item produce a new \texttt{a} with the modified \texttt{b} inside
+  \item think: \texttt{a} somehow ``contains'' a \texttt{b}
+  \item given:
+    \begin{itemize}
+    \item functorial function modifying the \texttt{b}
+    \item and a ``bigger'' value of type \texttt{a}
+    \end{itemize}
+  \item produce a new \texttt{a} that has the modified \texttt{b} ``inside''
   \end{itemize}
 \end{frame}
 
@@ -151,7 +171,7 @@
   \end{minted}
   \vfill
   \begin{minted}{haskell}
-  get _1 Const (42, 'a')
+  get _1 (42, 'a')
 = getConst (_1 Const (42, 'a'))                 -- Def. of 'get'
 = getConst (fmap (\x2 -> (x2, 'a')) (Const 42)) -- Def. of '_1'
 = getConst (Const 42)                           -- Def. of 'fmap' for 'Const
@@ -200,7 +220,7 @@
 \begin{frame}[fragile]
   \frametitle{The Applicative Instance}
   \begin{minted}{haskell}
-    instance Applicative (Const m) where
+    instance Monoid m => Applicative (Const m) where
       pure :: a -> Const m a
       pure _ = Const mempty
 
@@ -210,7 +230,7 @@
 \end{frame}
 
 \begin{frame}
-  \frametitle{Promoting Monoids}
+  \frametitle{Using The Applicative Instance}
   \begin{itemize}
   \item but what does it \textbf{mean}?
   \item we can use any function working with \texttt{Applicative}s and
@@ -218,29 +238,35 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}
-  \frametitle{Using Promoted Monoids}
-  \begin{itemize}
-  \item by using \texttt{traverse} with \texttt{Const} we get \texttt{foldMap}
-  \item that's why \texttt{Traversable} is enough to define a \texttt{Foldable} instance
-  \item Use \texttt{Const} to statically analyze \texttt{Free Applicative} programs
-  \item which accumulates a monoidal value instead of performing actual effects
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Const and Applicative}
-  \begin{itemize}
-  \item beautiful: \texttt{Const} highlights the relation between
-    Applicative and Monoid
-  \item you can use \textbf{everything} you know from Monoids and plug it into applicative functions
-  \item Applicative laws state that instances have to be monoidal in
-    their effects
-  \item use \texttt{Const} to ``analyze'' \texttt{Free Applicatives}
-  \end{itemize}
+\begin{frame}[fragile]
+  \frametitle{Using The Applicative Instance}
+  \begin{minted}{haskell}
+traverse :: ... => (a -> Const m b) -> t a -> Const m (t b)
+foldMap  :: ... => (a ->       m)   -> t a ->       m
+  \end{minted}
+  \begin{enumerate}
+  \item
+    \begin{itemize}
+    \item by using \texttt{traverse} with \texttt{Const} we get \texttt{foldMap}
+    \item that's why \texttt{Traversable} is enough to define a \texttt{Foldable} instance
+    \end{itemize}
+  \item
+    \begin{itemize}
+    \item Use \texttt{Const} to statically analyze \texttt{Free Applicative} programs
+    \item to accumulate monoidal value without performing actual effects
+    \end{itemize}
+  \item
+    \begin{itemize}
+    \item beautiful: \texttt{Const} highlights the relation between
+      Applicative and Monoid
+    \item you can use \textbf{everything} you know from Monoids and plug it into applicative functions
+    \item Applicative laws state that instances have to be monoidal in their effects
+    \end{itemize}
+  \end{enumerate}
 \end{frame}
 
 \begin{frame}[fragile]
+  \frametitle{What Is Next?}
   \begin{itemize}
   \item we saw the instance for \texttt{Applicative}
   \item important bridge between \texttt{Monoid} and \texttt{Applicative}
@@ -249,11 +275,12 @@
 \end{frame}
 
 \begin{frame}[fragile]
+  \frametitle{The Monad Instance?}
   \begin{minted}{haskell}
 import Data.Functor.Const
 
 instance Monoid a => Monad (Const a) where
-  Const x >>= f = f _
+  c@(Const x) >>= f = f _
   \end{minted}
   \begin{minted}{text}
 const-monad.hs:4:23: error:
@@ -265,29 +292,26 @@ const-monad.hs:4:23: error:
         c :: Const a a1 (bound at const-monad.hs:4:3)
 ...
   \end{minted}
-  \begin{itemize}
-  \item \texttt{mempty} would typecheck, but violate the left-identity law
-  \item we simply can't ``pretend'' anymore
-  \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]
   \begin{itemize}
+  \item \texttt{mempty} would typecheck, but violate the left-identity law
+  \item we simply can't ``pretend'' anymore
   \item somewhere between \texttt{Applicative} and \texttt{Monad}\ldots
-  \item Selective Functors!
   \end{itemize}
 \end{frame}
 
 \section{Selective}
 \begin{frame}
   \begin{center}
-    \Huge Selective
+    \Huge Selective Applicative Functors
   \end{center}
 \end{frame}
 
 \begin{frame}[fragile]
   \begin{center}
-    \includegraphics[width=0.77\textwidth]{static-images/selective-applicative-functors-paper.jpg}
+    \includegraphics[width=0.76\textwidth]{static-images/selective-applicative-functors-paper.jpg}
     \vfill
     \href{https://www.staff.ncl.ac.uk/andrey.mokhov/selective-functors.pdf}{https://www.staff.ncl.ac.uk/andrey.mokhov/selective-functors.pdf}
   \end{center}
@@ -303,7 +327,7 @@ const-monad.hs:4:23: error:
 
   \begin{itemize}
   \item (emphasis mine)
-  \item offer some of the benefits of Arrows, less powerful
+  \item offer some of the benefits of Arrows, less powerful (not this talk \texttt{:/})
   \item structure of effects still \textbf{statically} fixed, but still \textbf{dynamically} reconfigurable
   \end{itemize}
 \end{frame}
@@ -318,15 +342,10 @@ class Applicative f => Selective f where
   \begin{itemize}
   \item what does it buy me?
   \item you can branch on \textbf{Bool}s that are inside an ``effect''\footnote{``effect'' with the usual caveats}
-    % TODO: code example, e.g. checkFoo
   \end{itemize}
   \begin{minted}{haskell}
     ifS :: Selective f => f Bool -> f a -> f a -> f a
   \end{minted}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Selective Functors}
 \end{frame}
 
 \begin{frame}[fragile]
@@ -358,6 +377,11 @@ instance Monoid a => Selective (Over a) where
 instance Monoid a => Selective (Under a) where
   select (Under (Const c)) _ = Under (Const c)
   \end{minted}
+  \vfill
+  \begin{itemize}
+  \item \texttt{Over} also goes into conditional branches
+  \item \texttt{Under} ignores conditionally executed parts
+  \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]
