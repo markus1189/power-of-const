@@ -43,11 +43,6 @@
 \end{frame}
 
 \section{Introduction}\label{sec:introduction}
-\begin{frame}
-  \begin{center}
-    \Huge Introduction
-  \end{center}
-\end{frame}
 
 \begin{frame}
   \frametitle{Why This Talk}
@@ -55,15 +50,15 @@
   \item why a whole talk about \texttt{Const}?
   \item one of the ``funny'' datatypes at first sight
   \item not immediately obvious what it is good for
-  \item surprisingly, it is many useful usages
+  \item surprisingly, it is \textbf{many} useful usages
   \item this talk shows (some of) them
   \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]
   \begin{center}
-    \begin{minted}[fontsize=\Large, linenos=false]{haskell}
-     newtype Const a b = Const { getConst :: a }
+    \begin{minted}[fontsize=\LARGE, linenos=false]{haskell}
+  newtype Const a b = Const { getConst :: a }
     \end{minted}
   \end{center}
 \end{frame}
@@ -89,12 +84,11 @@
 \end{frame}
 
 \begin{frame}
-  \frametitle{Table Of Contents}
+  \frametitle{The Rest Of This Talk}
   \begin{itemize}
-  \item Functor instance
-  \item Applicative instance
-  \item Selective Applicative instance
-  \item Conclusion
+  \item \texttt{Functor} instance
+  \item \texttt{Applicative} instance
+  \item \texttt{Selective Applicative} instance
   \end{itemize}
 \end{frame}
 
@@ -105,23 +99,24 @@
   \end{center}
 \end{frame}
 
-\begin{frame}[fragile]
+\begin{frame}[fragile,t]
   \frametitle{The Functor Instance}
   \begin{minted}{haskell}
   instance Functor (Const a) where
-    fmap f c = _
+    fmap f c@(Const a) = _
   \end{minted}
   \vspace{5mm}
   \begin{minted}{text}
-* Found hole: _ :: MyConst a b
-...
-* Relevant bindings include
-    c :: MyConst a a1
-    f :: a1 -> b
+  • Found hole: _ :: MyConst a b
+  ...
+  • Relevant bindings include
+      c :: MyConst a a1
+      a :: a
+      f :: a1 -> b
   \end{minted}
 \end{frame}
 
-\begin{frame}[fragile]
+\begin{frame}[fragile,t]
   \frametitle{The Functor Instance}
   \begin{minted}{haskell}
   instance Functor (Const a) where
@@ -129,15 +124,19 @@
   \end{minted}
   \vspace{5mm}
   \begin{minted}{text}
-    ghci> c = Const @String @Int "can't touch me"
-    ghci> fmap (+1) c
-    Const "can't touch me"
+  ghci> c = Const @String @Int "can't touch me"
+
+  ghci> fmap (+1) c
+  Const "can't touch me"
+
+  ghci> fmap print c
+  Const "can't touch me"
   \end{minted}
   \vfill
   \begin{itemize}
   \item unpack and retag (change the phantom type)
   \item \textbf{discards} the function application
-  \item but how is this useful?
+  \item \dots{} but how is this useful?
   \end{itemize}
 \end{frame}
 
@@ -148,15 +147,15 @@
     _1 :: Lens (a, b) a
     _1 f (x1, y) = fmap (\x2 -> (x2, y)) (f x1)
   \end{minted}
-
+  \vfill
   \begin{itemize}
-  \item think: \texttt{a} somehow ``contains'' a \texttt{b}
+  \item think: '\textbf{\texttt{a}}' somehow contains '\textbf{\texttt{b}}'
   \item given:
     \begin{itemize}
-    \item functorial function modifying the \texttt{b}
-    \item and a ``bigger'' value of type \texttt{a}
+    \item functorial function modifying the \textbf{\texttt{b}}
+    \item and a ``bigger'' value of type \textbf{\texttt{a}}
     \end{itemize}
-  \item produce a new \texttt{a} that has the modified \texttt{b} ``inside''
+  \item produce new \textbf{\texttt{a}} that has the modified \textbf{\texttt{b}} ``inside''
   \end{itemize}
 \end{frame}
 
@@ -238,28 +237,29 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]
+\begin{frame}[fragile,t]
   \frametitle{Using The Applicative Instance}
   \begin{minted}{haskell}
 traverse :: ... => (a -> Const m b) -> t a -> Const m (t b)
 foldMap  :: ... => (a ->       m)   -> t a ->       m
   \end{minted}
+\vfill
   \begin{enumerate}
   \item
     \begin{itemize}
     \item by using \texttt{traverse} with \texttt{Const} we get \texttt{foldMap}
     \item that's why \texttt{Traversable} is enough to define a \texttt{Foldable} instance
     \end{itemize}
-  \item
+  \item<2->
     \begin{itemize}
     \item Use \texttt{Const} to statically analyze \texttt{Free Applicative} programs
     \item to accumulate monoidal value without performing actual effects
     \end{itemize}
-  \item
+  \item<3->
     \begin{itemize}
-    \item beautiful: \texttt{Const} highlights the relation between
+    \item \texttt{Const} highlights the relation between
       Applicative and Monoid
-    \item you can use \textbf{everything} you know from Monoids and plug it into applicative functions
+    \item use \textbf{everything} from Monoids and use with functions that require \texttt{Applicative}
     \item Applicative laws state that instances have to be monoidal in their effects
     \end{itemize}
   \end{enumerate}
@@ -298,7 +298,10 @@ const-monad.hs:4:23: error:
   \begin{itemize}
   \item \texttt{mempty} would typecheck, but violate the left-identity law
   \item we simply can't ``pretend'' anymore
-  \item somewhere between \texttt{Applicative} and \texttt{Monad}\ldots
+  \item \texttt{Const} does not have a \texttt{Monad} instance, but
+    still manages to teach us
+  \item somewhere between \texttt{Applicative} and
+    \texttt{Monad}\ldots
   \end{itemize}
 \end{frame}
 
@@ -327,8 +330,8 @@ const-monad.hs:4:23: error:
 
   \begin{itemize}
   \item (emphasis mine)
+  \item \texttt{Applicative}: effects declared \& executed statically
   \item offer some of the benefits of Arrows, less powerful (not this talk \texttt{:/})
-  \item structure of effects still \textbf{statically} fixed, but still \textbf{dynamically} reconfigurable
   \end{itemize}
 \end{frame}
 
@@ -340,6 +343,7 @@ class Applicative f => Selective f where
   \end{minted}
   \vspace{5mm}
   \begin{itemize}
+  \item (comes with some additional laws not shown here)
   \item what does it buy me?
   \item you can branch on \textbf{Bool}s that are inside an ``effect''\footnote{``effect'' with the usual caveats}
   \end{itemize}
@@ -348,14 +352,13 @@ class Applicative f => Selective f where
   \end{minted}
 \end{frame}
 
-\begin{frame}[fragile]
-  \begin{itemize}
-  \item now the interesting part: how does the instance for \texttt{Const} work?
-  \end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]
+\begin{frame}[fragile,t]
   \frametitle{The Selective Instance}
+    \begin{itemize}
+  \item now the interesting part: how does the instance for \texttt{Const} work?
+  \item with \texttt{Selective} we have two valid instances
+  \end{itemize}
+  \vfill
   \begin{minted}{haskell}
 newtype Over m a = Over { getOver :: m }
 
@@ -363,7 +366,6 @@ newtype Under m a = Under { getUnder :: m }
   \end{minted}
   \vfill
   \begin{itemize}
-  \item with \texttt{Selective} we have two use cases
   \item \texttt{Over} for static \textbf{over}-approximation
   \item \texttt{Under} for static \textbf{under}-approximation
   \end{itemize}
@@ -379,17 +381,16 @@ instance Monoid a => Selective (Under a) where
   \end{minted}
   \vfill
   \begin{itemize}
-  \item \texttt{Over} also goes into conditional branches
-  \item \texttt{Under} ignores conditionally executed parts
+  \item \textbf{\texttt{Over}} also goes into conditional branches
+  \item \textbf{\texttt{Under}} ignores conditionally executed parts
   \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]
   \begin{itemize}
   \item why is this so cool?
-  \item using the \texttt{FreeSelective}
-  \item the DSL can express conditional branching, but we can still do
-    static analysis and transformation
+  \item DSL using \textbf{\texttt{FreeSelective}} can express conditional branching and do
+    static analysis/transformation on programs
   \item using \texttt{Over} and \texttt{Under} extremely useful to e.g.\ check properties of a program
   \item example: does a certain effect \textbf{always} occur? Check \texttt{Under}
   \item example: does a certain effect \textbf{never} occur: Check \texttt{Over}
@@ -406,17 +407,23 @@ instance Monoid a => Selective (Under a) where
 \begin{frame}
   \begin{itemize}
   \item deceptively easy data type
-  \item very useful instances that have surprising usages
-  \item important tool to understand e.g. Monoidal aspects of
-    Applicatives
-  \item also easy to highlight the difference between monadic and
-    applicative capabilities
+  \item very useful instances that have surprising usages:
+    \begin{itemize}
+    \item Functor
+    \item Applicative
+    \item Selective Applicative
+    \end{itemize}
+  \item good tool to understand Monoidal aspects of Applicatives
+  \item highlights the difference between monadic and applicative
+    capabilities
   \end{itemize}
 \end{frame}
 
 \begin{frame}
-  \Huge{}
-  Questions?
+  \begin{center}
+    \Huge{}
+    Questions?
+  \end{center}
 \end{frame}
 
 \appendix{}
