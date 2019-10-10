@@ -107,12 +107,12 @@
   \end{minted}
   \vspace{5mm}
   \begin{minted}{text}
-  • Found hole: _ :: MyConst a b
+  • Found hole: _ :: Const a b
   ...
   • Relevant bindings include
-      c :: MyConst a a1
-      a :: a
       f :: a1 -> b
+      c :: Const a a1
+      a :: a
   \end{minted}
 \end{frame}
 
@@ -143,9 +143,9 @@
 \begin{frame}[fragile]
   \frametitle{Use of Const in Twan van Laarhoven Lenses}
   \begin{minted}{haskell}
-    type Lens a b = forall f. Functor f => (b -> f b) -> a -> f a
-    _1 :: Lens (a, b) a
-    _1 f (x1, y) = fmap (\x2 -> (x2, y)) (f x1)
+  type Lens a b = forall f. Functor f => (b -> f b) -> a -> f a
+  _1 :: Lens (a, b) a
+  _1 f (x1, y) = fmap (\x2 -> (x2, y)) (f x1)
   \end{minted}
   \vfill
   \begin{itemize}
@@ -162,11 +162,12 @@
 \begin{frame}[fragile]
   \frametitle{Implementing Getter With Const}
   \begin{minted}{haskell}
-    _1 :: Lens (a, b) a
-    _1 f (x1, y) = fmap (\x2 -> (x2, y)) (f x1)
+  type Lens a b = forall f. Functor f => (b -> f b) -> a -> f a
+  _1 :: Lens (a, b) a
+  _1 f (x1, y) = fmap (\x2 -> (x2, y)) (f x1)
 
-    get :: Lens a b -> a -> b
-    get l x = getConst (l Const x)
+  get :: Lens a b -> a -> b
+  get l x = getConst (l Const x)
   \end{minted}
   \vfill
   \begin{minted}{haskell}
@@ -265,46 +266,6 @@ foldMap  :: ... => (a ->       m)   -> t a ->       m
   \end{enumerate}
 \end{frame}
 
-\begin{frame}[fragile]
-  \frametitle{What Is Next?}
-  \begin{itemize}
-  \item we saw the instance for \texttt{Applicative}
-  \item important bridge between \texttt{Monoid} and \texttt{Applicative}
-  \item so what about the \texttt{Monad} instance?
-  \end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]
-  \frametitle{The Monad Instance?}
-  \begin{minted}{haskell}
-import Data.Functor.Const
-
-instance Monoid a => Monad (Const a) where
-  c@(Const x) >>= f = f _
-  \end{minted}
-  \begin{minted}{text}
-const-monad.hs:4:23: error:
-    • Found hole: _ :: Const a b
-...
-    • Relevant bindings include
-        f :: a1 -> Const a b (bound at const-monad.hs:4:19)
-        x :: a (bound at const-monad.hs:4:12)
-        c :: Const a a1 (bound at const-monad.hs:4:3)
-...
-  \end{minted}
-\end{frame}
-
-\begin{frame}[fragile]
-  \begin{itemize}
-  \item \texttt{mempty} would typecheck, but violate the left-identity law
-  \item we simply can't ``pretend'' anymore
-  \item \texttt{Const} does not have a \texttt{Monad} instance, but
-    still manages to teach us
-  \item somewhere between \texttt{Applicative} and
-    \texttt{Monad}\ldots
-  \end{itemize}
-\end{frame}
-
 \section{Selective}
 \begin{frame}
   \begin{center}
@@ -373,6 +334,11 @@ newtype Under m a = Under { getUnder :: m }
 
 \begin{frame}[fragile]
   \begin{minted}{haskell}
+-- Reminder:
+class Applicative f => Selective f where
+  select :: f (Either a b) -> f (a -> b) -> f b
+
+-- The two instances:
 instance Monoid a => Selective (Over a) where
   select (Over (Const c)) (Over (Const t)) = Over (Const (c <> t))
 
@@ -387,13 +353,19 @@ instance Monoid a => Selective (Under a) where
 \end{frame}
 
 \begin{frame}[fragile]
+  \frametitle{The Selective Instance}
   \begin{itemize}
   \item why is this so cool?
   \item DSL using \textbf{\texttt{FreeSelective}} can express conditional branching and do
     static analysis/transformation on programs
+    \begin{itemize}
+    \item Build systems à la carte (Mokhov, Andrey, Neil Mitchell, and Simon Peyton Jones.)
+    \end{itemize}
   \item using \texttt{Over} and \texttt{Under} extremely useful to e.g.\ check properties of a program
-  \item example: does a certain effect \textbf{always} occur? Check \texttt{Under}
-  \item example: does a certain effect \textbf{never} occur: Check \texttt{Over}
+    \begin{itemize}
+    \item does a certain effect \textbf{always} occur? Use \texttt{Under}
+    \item does a certain effect \textbf{never} occur: Use \texttt{Over}
+    \end{itemize}
   \end{itemize}
 \end{frame}
 
@@ -404,28 +376,71 @@ instance Monoid a => Selective (Under a) where
   \end{center}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
+  \frametitle{Conclusion}
+  \begin{minted}[fontsize=\large]{haskell}
+  newtype Const a b = Const { getConst :: a }
+  \end{minted}
   \begin{itemize}
-  \item deceptively easy data type
-  \item very useful instances that have surprising usages:
+  \item nonsense at first, but very useful
+  \item many instances that are very useful:
     \begin{itemize}
     \item Functor
     \item Applicative
     \item Selective Applicative
+    \item Monad? (exercise)
     \end{itemize}
-  \item good tool to understand Monoidal aspects of Applicatives
-  \item highlights the difference between monadic and applicative
-    capabilities
+  \item good tool to understand monoidal aspects of Applicatives
   \end{itemize}
 \end{frame}
 
 \begin{frame}
   \begin{center}
     \Huge{}
-    Questions?
+    Thanks!
   \end{center}
 \end{frame}
 
 \appendix{}
+
+\begin{frame}[fragile]
+  \frametitle{What Is Next?}
+  \begin{itemize}
+  \item we saw the instance for \texttt{Applicative}
+  \item important bridge between \texttt{Monoid} and \texttt{Applicative}
+  \item so what about the \texttt{Monad} instance?
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{The Monad Instance?}
+  \begin{minted}{haskell}
+import Data.Functor.Const
+
+instance Monoid a => Monad (Const a) where
+  c@(Const x) >>= f = f _
+  \end{minted}
+  \begin{minted}{text}
+const-monad.hs:4:23: error:
+    • Found hole: _ :: Const a b
+...
+    • Relevant bindings include
+        f :: a1 -> Const a b (bound at const-monad.hs:4:19)
+        x :: a (bound at const-monad.hs:4:12)
+        c :: Const a a1 (bound at const-monad.hs:4:3)
+...
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \begin{itemize}
+  \item \texttt{mempty} would typecheck, but violate the left-identity law
+  \item we simply can't ``pretend'' anymore
+  \item \texttt{Const} does not have a \texttt{Monad} instance, but
+    still manages to teach us
+  \item somewhere between \texttt{Applicative} and
+    \texttt{Monad}\ldots
+  \end{itemize}
+\end{frame}
 
 \end{document}
